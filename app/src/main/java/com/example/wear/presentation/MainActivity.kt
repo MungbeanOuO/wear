@@ -43,7 +43,7 @@ import com.example.wear.presentation.theme.WearTheme
 class MainActivity : ComponentActivity() {
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private lateinit var devicesFound: MutableState<List<String>>
-    private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
+    private lateinit var requestPermissionLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var isScanning: MutableState<Boolean>
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,13 +54,13 @@ class MainActivity : ComponentActivity() {
 
         // 初始化ActivityResultLauncher
         requestPermissionLauncher = registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                // 權限被授予，可以進行BLE掃描
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            if (permissions.all { it.value }) {
+                // 所有權限被授予，可以進行BLE掃描
                 startBleScan()
             } else {
-                // 權限被拒絕，處理您的邏輯
+                // 至少有一個權限被拒絕，處理您的邏輯
             }
         }
 
@@ -71,44 +71,43 @@ class MainActivity : ComponentActivity() {
         }
 
         // 請求權限
-        requestPermissions()
-
+        requestPermissionLauncher.launch(arrayOf(
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ))
     }
-
-    private fun requestPermissions() {
-        requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-    }
-
 
     private fun startBleScan() {
-        // 檢查精確位置權限是否已被授予
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        // 檢查藍牙掃描和連接權限是否已被授予
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED ||
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED ||
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // 如果沒有權限，處理權限請求或SecurityException
-            // 這裡可以顯示一個解釋為什麼需要這些權限的對話框，或者禁用BLE掃描功能
             return
         }
 
         val scanCallback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
                 super.onScanResult(callbackType, result)
-                // 檢查藍牙連接權限是否已被授予
-                if (ActivityCompat.checkSelfPermission(this@MainActivity, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    // 如果沒有權限，處理權限請求或SecurityException
-                    return
+                // 檢查是否有權限訪問藍牙裝置名稱
+                if (ActivityCompat.checkSelfPermission(this@MainActivity, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                    val deviceName = result.device.name ?: "Unknown Device"
+                    val deviceInfo = "Device Name: $deviceName\n" +
+                            "Device Address: ${result.device.address}\n" +
+                            "Signal Strength: ${result.rssi}dBm\n"
+                    devicesFound.value += deviceInfo
+                } else {
+                    // 沒有權限，可以在這裡處理或記錄
                 }
-                val deviceName = result.device.name ?: "Unknown Device"
-                val deviceInfo = "Device Name: $deviceName\n" +
-                        "Device Address: ${result.device.address}\n" +
-                        "Signal Strength: ${result.rssi}dBm\n"
-                // 使用運算符賦值來簡化代碼
-                devicesFound.value += deviceInfo
             }
         }
+
         isScanning.value = true
         bluetoothAdapter.bluetoothLeScanner.startScan(scanCallback)
     }
-
 }
+
 
 @Composable
 fun WearApp(devicesFound: MutableState<List<String>>, isScanning: MutableState<Boolean>) {
@@ -116,7 +115,7 @@ fun WearApp(devicesFound: MutableState<List<String>>, isScanning: MutableState<B
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White), // 使用 Color.White 替代
+                .background(Color.Transparent),
             contentAlignment = Alignment.Center
         ) {
             ScanningIndicator(isScanning.value)
@@ -144,6 +143,7 @@ fun DeviceCard(deviceInfo: String) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp),
+
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
@@ -153,7 +153,7 @@ fun DeviceCard(deviceInfo: String) {
         ) {
             Text(
                 text = deviceInfo,
-                style = MaterialTheme.typography.bodySmall // 使用 Material Design 3 的 bodyLarge
+                style = MaterialTheme.typography.bodyMedium // 使用 Material Design 3 的 bodyLarge
             )
         }
     }
