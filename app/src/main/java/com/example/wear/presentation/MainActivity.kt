@@ -1,4 +1,5 @@
 package com.example.wear.presentation
+
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
@@ -12,20 +13,30 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text // 保留這個導入，移除 Wear OS 的 Text 導入
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
-import androidx.wear.compose.material.MaterialTheme
-import androidx.wear.compose.material.TimeText
+import androidx.wear.compose.material.TimeText // 保留 TimeText 的導入，如果您在 Wear OS 應用中需要它
 import androidx.wear.tooling.preview.devices.WearDevices
 import com.example.wear.presentation.theme.WearTheme
 
@@ -33,6 +44,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private lateinit var devicesFound: MutableState<List<String>>
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
+    private lateinit var isScanning: MutableState<Boolean>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,12 +64,15 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        isScanning = mutableStateOf(false)
+
+        setContent {
+            WearApp(devicesFound, isScanning)
+        }
+
         // 請求權限
         requestPermissions()
 
-        setContent {
-            WearApp(devicesFound)
-        }
     }
 
     private fun requestPermissions() {
@@ -89,21 +104,22 @@ class MainActivity : ComponentActivity() {
                 devicesFound.value += deviceInfo
             }
         }
-
+        isScanning.value = true
         bluetoothAdapter.bluetoothLeScanner.startScan(scanCallback)
     }
 
 }
 
 @Composable
-fun WearApp(devicesFound: MutableState<List<String>>) {
+fun WearApp(devicesFound: MutableState<List<String>>, isScanning: MutableState<Boolean>) {
     WearTheme {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colors.background),
+                .background(Color.White), // 使用 Color.White 替代
             contentAlignment = Alignment.Center
         ) {
+            ScanningIndicator(isScanning.value)
             TimeText()
             DeviceList(devicesFound)
         }
@@ -112,20 +128,53 @@ fun WearApp(devicesFound: MutableState<List<String>>) {
 
 @Composable
 fun DeviceList(devicesFound: MutableState<List<String>>) {
-    for (deviceInfo in devicesFound.value) {
-        androidx.wear.compose.material.Text(
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colors.primary,
-            text = deviceInfo
-        )
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        items(devicesFound.value) { deviceInfo ->
+            DeviceCard(deviceInfo)
+        }
     }
 }
 
+@Composable
+fun DeviceCard(deviceInfo: String) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth()
+        ) {
+            Text(
+                text = deviceInfo,
+                style = MaterialTheme.typography.bodySmall // 使用 Material Design 3 的 bodyLarge
+            )
+        }
+    }
+}
+
+@Composable
+fun ScanningIndicator(isScanning: Boolean) {
+    Box(
+        modifier = Modifier.fillMaxSize(), // 使用 Box 包裹 CircularProgressIndicator
+        contentAlignment = Alignment.Center
+    ) {
+        if (isScanning) {
+            CircularProgressIndicator()
+        }
+    }
+}
 
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
 fun DefaultPreview() {
     val devicesList = remember { mutableStateOf(listOf("Preview Device 1", "Preview Device 2")) }
-    WearApp(devicesList)
+    val isScanning = remember { mutableStateOf(false) } // 添加假的 isScanning 狀態
+    WearApp(devicesList, isScanning)
 }
