@@ -37,11 +37,11 @@ import androidx.wear.compose.material.TimeText
 import androidx.wear.tooling.preview.devices.WearDevices
 import com.example.wear.presentation.theme.WearTheme
 import kotlinx.coroutines.launch
+import androidx.compose.material3.Button
 
 @Composable
-fun WearApp(devicesFound: MutableState<List<String>>, isScanning: MutableState<Boolean>) {
+fun WearApp(devicesFound: MutableState<List<String>>, isScanning: MutableState<Boolean>, onStartScan: () -> Unit, onStopScan: () -> Unit, onClearAndRescan: () -> Unit) {
     val listState = rememberLazyListState()
-    rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
 
     WearTheme {
@@ -54,9 +54,30 @@ fun WearApp(devicesFound: MutableState<List<String>>, isScanning: MutableState<B
             ScanningIndicator(isScanning.value)
             TimeText()
             DeviceList(devicesFound, listState, focusRequester)
+            ControlButtons(isScanning, onStartScan, onStopScan, onClearAndRescan)
         }
     }
 }
+
+@Composable
+fun ControlButtons(isScanning: MutableState<Boolean>, onStartScan: () -> Unit, onStopScan: () -> Unit, onClearAndRescan: () -> Unit) {
+    Column {
+        Button(onClick = {
+            if (isScanning.value) {
+                onStopScan()
+            } else {
+                onStartScan()
+            }
+        }) {
+            Text(if (isScanning.value) "停止掃描" else "開始掃描")
+        }
+        Button(onClick = onClearAndRescan) {
+            Text("清空並重新掃描")
+        }
+    }
+}
+
+// ...保留其他@Composable函數不變...
 
 @Composable
 fun DeviceList(devicesFound: MutableState<List<String>>, listState: LazyListState, focusRequester: FocusRequester) {
@@ -121,10 +142,17 @@ fun ScanningIndicator(isScanning: Boolean) {
     }
 }
 
+
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
 fun DefaultPreview() {
     val devicesList = remember { mutableStateOf(listOf("Preview Device 1", "Preview Device 2")) }
     val isScanning = remember { mutableStateOf(false) }
-    WearApp(devicesList, isScanning)
+
+    // 為預覽提供空的行為實現
+    val onStartScan = {}
+    val onStopScan = {}
+    val onClearAndRescan = {}
+
+    WearApp(devicesList, isScanning, onStartScan, onStopScan, onClearAndRescan)
 }
