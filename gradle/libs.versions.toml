@@ -21,10 +21,10 @@ compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = 
 ui = { group = "androidx.compose.ui", name = "ui" }
 ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest", version = "1.7.0-alpha06" }
 ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
-compose-material = { group = "androidx.wear.compose", name = "compose-material", version.ref = "composeMaterial" }
-compose-foundation = { group = "androidx.wear.compose", name = "compose-foundation", version.ref = "composeFoundation" }
+compose-material = { group = "androidx.wear.compose", name = "compose-material", version = "1.4.0-alpha06" }
+compose-foundation = { group = "androidx.wear.compose", name = "compose-foundation", version = "1.4.0-alpha06" }
 activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
 tiles = { group = "androidx.wear.tiles", name = "tiles", version.ref = "tiles" }
